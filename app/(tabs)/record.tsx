@@ -102,7 +102,7 @@ export default function Record() {
     } as any);
 
     try {
-      const response = await fetch("http://10.0.0.11:8000/transcribe/", {
+      const response = await fetch("http://192.168.88.226:8000/transcribe/", {
         method: "POST",
         body: formData,
         headers: {

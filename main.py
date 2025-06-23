@@ -25,19 +25,33 @@ async def transcribe(file: UploadFile = File(...)):
     temp_output = temp_input.replace(".m4a", ".wav")
 
     try:
-        # Save the uploaded file to disk
+    # Save uploaded file to disk
         with open(temp_input, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # Convert to WAV using ffmpeg
-        print("🔄 Converting M4A to WAV...")
-        subprocess.run(["ffmpeg", "-y", "-i", temp_input, temp_output], check=True)
+        print("📁 Uploaded file saved as:", temp_input)
 
-        # Transcribe the WAV file
+    # Run ffmpeg and capture stderr
+        print("🔄 Running ffmpeg to convert audio...")
+        ffmpeg_result = subprocess.run(
+            ["ffmpeg", "-y", "-i", temp_input, temp_output],
+            capture_output=True,
+            text=True
+        )
+
+        if ffmpeg_result.returncode != 0:
+            print("❌ FFMPEG failed")
+            print("FFMPEG STDERR:", ffmpeg_result.stderr)
+            raise Exception("FFMPEG conversion failed")
+
+        print("✅ FFMPEG succeeded. Converted to:", temp_output)
+
+        # Run Whisper transcription
         result = model.transcribe(temp_output)
         print("📝 Transcript:", result["text"])
 
         return {"transcript": result["text"]}
+
     
     except Exception as e:
         print("❌ Error during transcription:", str(e))

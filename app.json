@@ -13,11 +13,10 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSSpeechRecognitionUsageDescription": "Allow $(PRODUCT_NAME) to use speech recognition.",
-        "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to use the microphone."
+        "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to use the microphone.",
+        "ITSAppUsesNonExemptEncryption": false
       },
-      "runtimeVersion": {
-        "policy": "appVersion"
-      }
+      "bundleIdentifier": "com.hassansalemeh.voicememo"
     },
     "android": {
       "adaptiveIcon": {
@@ -26,10 +25,8 @@
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
-        "android.permission.RECORD_AUDIO",
         "android.permission.RECORD_AUDIO"
       ],
-      "runtimeVersion": "1.0.0",
       "package": "com.hassansalemeh.voicememo"
     },
     "web": {
@@ -59,6 +56,9 @@
       "eas": {
         "projectId": "9fb07f7b-f6dd-47e8-8546-75a93c99c7ab"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     },
     "updates": {
       "url": "https://u.expo.dev/9fb07f7b-f6dd-47e8-8546-75a93c99c7ab"
