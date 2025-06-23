@@ -102,7 +102,7 @@ export default function Record() {
     } as any);
 
     try {
-      const response = await fetch("http://192.168.1.109:8000/transcribe/", {
+      const response = await fetch("https://voice-memc-backend1.onrender.com/transcribe/", {
         method: "POST",
         body: formData,
         headers: {

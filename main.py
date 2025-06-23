@@ -19,6 +19,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 @app.post("/transcribe/")
 async def transcribe(file: UploadFile = File(...)):
     temp_input = f"temp_{uuid.uuid4().hex}.m4a"
