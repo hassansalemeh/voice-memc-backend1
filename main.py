@@ -9,7 +9,9 @@ from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
-model = whisper.load_model("tiny")  # You can use "tiny", "small", etc.
+print("🚀 Loading Whisper model (tiny)...")
+model = whisper.load_model("tiny")  # You can change to "base" or "small" if needed
+print("✅ Whisper model loaded")
 
 # Allow access from your phone
 app.add_middleware(
@@ -23,21 +25,21 @@ app.add_middleware(
 def health():
     return {"status": "ok"}
 
-
 @app.post("/transcribe/")
 async def transcribe(file: UploadFile = File(...)):
     temp_input = f"temp_{uuid.uuid4().hex}.m4a"
     temp_output = temp_input.replace(".m4a", ".wav")
 
     try:
-    # Save uploaded file to disk
+        print("📥 Received file:", file.filename)
+
+        # Save uploaded file
         with open(temp_input, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
+        print(f"📁 File saved to disk: {temp_input}")
 
-        print("📁 Uploaded file saved as:", temp_input)
-
-    # Run ffmpeg and capture stderr
-        print("🔄 Running ffmpeg to convert audio...")
+        # Convert with ffmpeg
+        print("🔄 Running ffmpeg to convert audio to WAV...")
         ffmpeg_result = subprocess.run(
             ["ffmpeg", "-y", "-i", temp_input, temp_output],
             capture_output=True,
@@ -49,22 +51,24 @@ async def transcribe(file: UploadFile = File(...)):
             print("FFMPEG STDERR:", ffmpeg_result.stderr)
             raise Exception("FFMPEG conversion failed")
 
-        print("✅ FFMPEG succeeded. Converted to:", temp_output)
+        print(f"✅ FFMPEG succeeded. WAV saved to {temp_output}")
 
-        # Run Whisper transcription
+        # Transcribe
+        print("🧠 Starting transcription with Whisper...")
         result = model.transcribe(temp_output)
-        print("📝 Transcript:", result["text"])
+        print("📝 Transcription completed:", result["text"])
 
         return {"transcript": result["text"]}
 
-    
     except Exception as e:
         print("❌ Error during transcription:", str(e))
         return {"error": str(e)}
-    
+
     finally:
-        # Cleanup files
+        # Clean up temp files
         if os.path.exists(temp_input):
             os.remove(temp_input)
+            print(f"🧹 Deleted: {temp_input}")
         if os.path.exists(temp_output):
             os.remove(temp_output)
+            print(f"🧹 Deleted: {temp_output}")

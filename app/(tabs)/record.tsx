@@ -18,6 +18,7 @@ import {
 import Toast from "react-native-root-toast";
 import Waveform from "../../components/waveform";
 import colors from "../../constant/colors";
+import { BASE_URL } from "../../constant/env";
 import { useTheme } from "../../constant/ThemeContext";
 
 type RecordingData = {
@@ -29,6 +30,8 @@ type RecordingData = {
 export default function Record() {
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [showCheckButton, setShowCheckButton] = useState<boolean>(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+
   const { theme } = useTheme();
   const { t } = useTranslation();
   const router = useRouter();
@@ -93,45 +96,131 @@ export default function Record() {
     }
   };
 
-  const uploadAndTranscribe = async (uri: string): Promise<boolean> => {
-    const formData = new FormData();
-    formData.append("file", {
-      uri,
-      name: uri.split("/").pop() || "recording.mp4",
-      type: "audio/mp4",
-    } as any);
+//   const uploadAndTranscribe = async (uri: string): Promise<boolean> => {
+//     console.log("Starting upload and transcription...");
+//     console.log("Recording URI:", uri);
 
-    try {
-      const response = await fetch("https://voice-memc-backend1.onrender.com/transcribe/", {
-        method: "POST",
-        body: formData,
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+//     const fileName = uri.split("/").pop() || "recording.m4a";
+//     const formData = new FormData();
+//     formData.append("file", {
+//       uri,
+//       name: uri.split("/").pop() || "recording.mp4",
+//       type: "audio/mp4",
+//     } as any);
 
-      if (!response.ok) {
-        const errText = await response.text();
-        console.error("Response body:", errText);
-        throw new Error(`Transcription API failed with status: ${response.status}`);
-      }
+//     const controller = new AbortController();
+//     const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 seconds timeout
 
-      const data = await response.json();
-      const existing = await AsyncStorage.getItem("recordings");
-      const recordings: RecordingData[] = existing ? JSON.parse(existing) : [];
+//     try {
+//       const response = await fetch("https://voice-memc-backend1.onrender.com/transcribe/", {
+//       // const response = await fetch("http://192.168.1.109:8000/transcribe/", {
+//         method: "POST",
+//         headers: {
+//           "Content-Type": "multipart/form-data",
+//         },
+//         body : formData,
+//         signal: controller.signal,
+//       });
+//       clearTimeout(timeoutId);
+//       const status = response.status;
+//       const responseText = await response.text();
 
-      const latestIndex = recordings.length - 1;
-      if (recordings[latestIndex]) {
-        recordings[latestIndex].transcript = data.transcript;
-        await AsyncStorage.setItem("recordings", JSON.stringify(recordings));
-      }
+//       console.log("Response Status:", status);
+//       console.log("Response Body:", responseText);
+      
 
-      return true;
-    } catch (err) {
-      console.error("uploadAndTranscribe failed:", err);
-      return false;
+//       if (!response.ok) {
+//         const errText = await response.text();
+//         console.error("Response body:", errText);
+//         throw new Error(`Transcription API failed with status: ${response.status}`);
+//       }
+
+//       const data = await response.json();
+//       const existing = await AsyncStorage.getItem("recordings");
+//       const recordings: RecordingData[] = existing ? JSON.parse(existing) : [];
+
+//       const latestIndex = recordings.length - 1;
+//       if (recordings[latestIndex]) {
+//         recordings[latestIndex].transcript = data.transcript;
+//         await AsyncStorage.setItem("recordings", JSON.stringify(recordings));
+//       }
+
+//       return true;
+//     } catch (err) {
+//   console.error("uploadAndTranscribe failed:", JSON.stringify(err, null, 2));
+//   Alert.alert("Network Error", "Please check your connection or try again.");
+//   return false;
+// }
+
+//   };
+const uploadAndTranscribe = async (uri: string): Promise<boolean> => {
+  console.log("Starting upload and transcription...");
+  console.log("Recording URI:", uri);
+
+  const fileName = uri.split("/").pop() || "recording.m4a";
+  const formData = new FormData();
+
+  formData.append("file", {
+    uri,
+    name: fileName,
+    type: "audio/x-m4a", // FIXED MIME TYPE
+  } as any);
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 90000); // 20 sec timeout
+
+  try {
+    const response = await fetch(`${BASE_URL}/transcribe/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+      body: formData,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    const status = response.status;
+    const responseText = await response.text();
+
+    console.log("Response Status:", status);
+    console.log("Response Body:", responseText);
+
+    if (!response.ok) {
+      throw new Error(`Backend error ${status}: ${responseText}`);
     }
-  };
+
+    const data = JSON.parse(responseText);
+    if (!data?.transcript) {
+      throw new Error("Backend responded but transcript is missing.");
+    }
+
+    const existing = await AsyncStorage.getItem("recordings");
+    const recordings: RecordingData[] = existing ? JSON.parse(existing) : [];
+    const latestIndex = recordings.length - 1;
+
+    if (recordings[latestIndex]) {
+      recordings[latestIndex].transcript = data.transcript;
+      await AsyncStorage.setItem("recordings", JSON.stringify(recordings));
+    }
+
+    console.log("Transcription success.");
+    return true;
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+
+    if (err.name === "AbortError") {
+      console.error("❌ Transcription request timed out.");
+      Alert.alert("Timeout", "The server took too long to respond. Try again.");
+    } else {
+      console.error("❌ uploadAndTranscribe failed:", err.message);
+      Alert.alert("Upload Error", err.message);
+    }
+
+    return false;
+  }
+};
 
   const handlePress = () => {
     if (isRecording) {
@@ -178,14 +267,19 @@ export default function Record() {
               }
 
               if (!latest.transcript) {
+                setIsTranscribing(true);
                 const success = await uploadAndTranscribe(latest.uri);
+                setIsTranscribing(false);
                 if (!success) {
-                  Alert.alert("Error", "Transcription failed.");
-                  return;
+                  Alert.alert(
+                    "Warning",
+                    "Transcription failed. Showing form without transcript."
+                  );
                 }
               }
 
               router.push("/filledform");
+
             }}
           >
             <Text style={styles.checkButtonText}>{t("check_instructions")}</Text>
