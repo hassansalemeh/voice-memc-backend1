@@ -5,12 +5,12 @@ import subprocess
 import uuid
 
 import whisper
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
-print("🚀 Loading Whisper model (tiny)...")
-model = whisper.load_model("tiny")  # You can change to "base" or "small" if needed
+print("🚀 Loading Whisper model (base)...")
+model = whisper.load_model("base")  # You can change to "base" or "small" if needed
 print("✅ Whisper model loaded")
 
 # Allow access from your phone
@@ -26,7 +26,8 @@ def health():
     return {"status": "ok"}
 
 @app.post("/transcribe/")
-async def transcribe(file: UploadFile = File(...)):
+async def transcribe(request: Request, file: UploadFile = File(...)):
+    print("🌐 Incoming request headers:", dict(request.headers))
     temp_input = f"temp_{uuid.uuid4().hex}.m4a"
     temp_output = temp_input.replace(".m4a", ".wav")
 

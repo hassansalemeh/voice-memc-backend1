@@ -172,9 +172,6 @@ const uploadAndTranscribe = async (uri: string): Promise<boolean> => {
   try {
     const response = await fetch(`${BASE_URL}/transcribe/`, {
       method: "POST",
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
       body: formData,
       signal: controller.signal,
     });
