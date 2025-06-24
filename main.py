@@ -9,8 +9,8 @@ from fastapi import FastAPI, File, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
-print("🚀 Loading Whisper model (base)...")
-model = whisper.load_model("base")  # You can change to "base" or "small" if needed
+print("🚀 Loading Whisper model (tiny)...")
+model = whisper.load_model("tiny")  # You can change to "base" or "small" if needed
 print("✅ Whisper model loaded")
 
 # Allow access from your phone
