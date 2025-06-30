@@ -3,8 +3,12 @@ services:
     name: voice-memo
     env: python
     plan: free
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "uvicorn main:app --host=0.0.0.0 --port=${PORT}"
+    buildCommand: |
+      apt-get update && apt-get install -y ffmpeg && \
+      pip install -r requirements.txt
+    startCommand: uvicorn main:app --host=0.0.0.0 --port=${PORT}
     autoDeploy: true
-    build:
-      pythonVersion: 3.10
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10
+
