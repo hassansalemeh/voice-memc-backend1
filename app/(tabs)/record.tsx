@@ -27,6 +27,9 @@ export default function Record() {
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
   useEffect(() => {
+    const ping = setInterval(() => {
+    fetch("https://voice-memc-backend1.onrender.com/health");
+    },5 * 60 * 1000); // Ping every 5 minutes
     (async () => {
       const status = await AudioModule.requestRecordingPermissionsAsync();
       if (!status.granted) {
@@ -89,20 +92,20 @@ export default function Record() {
     console.log("Starting upload and transcription...");
     console.log("Recording URI:", uri);
 
-    const fileName = uri.split("/").pop() || "recording.mp4";
+    const fileName = uri.split("/").pop() || "recording.x-m4a";
     const formData = new FormData();
     formData.append("file", {
       uri,
-      name: uri.split("/").pop() || "recording.mp4",
-      type: "audio/mp4",
+      name: uri.split("/").pop() || "recording.x-m4a",
+      type: "audio/x-m4a", // FIXED MIME TYPE
     } as any);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 20 seconds timeout
+    const timeoutId = setTimeout(() => controller.abort(), 90000); // 20 seconds timeout
 
     try {
-      // const response = await fetch("https://voice-memc-backend1.onrender.com/transcribe/", {
-      const response = await fetch("http://192.168.88.226:8000/transcribe/", {
+      const response = await fetch("https://voice-memc-backend1.onrender.com/transcribe/", {
+      // const response = await fetch("http://192.168.88.226:8000/transcribe/", {
         method: "POST",
         body: formData,
         signal: controller.signal,
@@ -248,6 +251,16 @@ export default function Record() {
         <Text style={[styles.status, theme === "dark" && { color: "#fff" }]}>
           {isRecording ? t("recording1") : t("tapToRecord")}
         </Text>
+        {isTranscribing && (
+          <Text style={[styles.status, theme === "dark" && { color: "#fff" }]}>
+            {t("transcribing")}
+          </Text>
+        )}
+        {!isRecording && !isTranscribing && (
+          <Text style={[styles.status, theme === "dark" && { color: "#fff" }]}>
+            {t("recordingStopped")}
+          </Text>
+        )}
 
         {showCheckButton && (
           <TouchableOpacity

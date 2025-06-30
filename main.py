@@ -3,6 +3,7 @@ import os
 import shutil
 import subprocess
 import uuid
+import time 
 
 import whisper
 from fastapi import FastAPI, File, Request, UploadFile
@@ -28,6 +29,7 @@ def health():
 
 @app.post("/transcribe/")
 async def transcribe(request: Request, file: UploadFile = File(...)):
+    start = time.time()  # 🕒 Add this to start timing
     print("🌐 Incoming request headers:", dict(request.headers))
     temp_input = f"temp_{uuid.uuid4().hex}.m4a"
     temp_output = temp_input.replace(".m4a", ".wav")
@@ -56,9 +58,13 @@ async def transcribe(request: Request, file: UploadFile = File(...)):
         print(f"✅ FFMPEG succeeded. WAV saved to {temp_output}")
 
         # Transcribe
+        
         print("🧠 Starting transcription with Whisper...")
         result = model.transcribe(temp_output)
         print("📝 Transcription completed:", result["text"])
+
+        duration = time.time() - start
+        print(f"⏱️ Total transcription time: {duration:.2f} seconds")
 
         return {"transcript": result["text"]}
 

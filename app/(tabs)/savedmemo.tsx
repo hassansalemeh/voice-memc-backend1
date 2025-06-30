@@ -14,6 +14,9 @@ import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import RecordingItem from "../../components/RecordingItem";
 import colors from "../../constant/colors";
+import * as MediaLibrary from "expo-media-library";
+import * as FileSystem from "expo-file-system";
+
 
 interface RecordingData {
   id: string;
@@ -41,6 +44,23 @@ export default function SavedMemo() {
     const updated = recordings.filter((r) => r.id !== id);
     setRecordings(updated);
     await AsyncStorage.setItem("recordings", JSON.stringify(updated));
+  };
+  const exportToDownloads = async (uri: string) => {
+    try {
+      const permission = await MediaLibrary.requestPermissionsAsync();
+      if (!permission.granted) {
+        alert("Permission required to export recording.");
+        return;
+      }
+
+      const filename = uri.split("/").pop();
+      const asset = await MediaLibrary.createAssetAsync(uri);
+      await MediaLibrary.createAlbumAsync("Download", asset, false);
+      alert(`Exported "${filename}" to Downloads!`);
+    } catch (err) {
+      console.error("Export failed", err);
+      alert("Export failed. Check logs.");
+    }
   };
 
   return (
@@ -81,12 +101,29 @@ export default function SavedMemo() {
         data={recordings}
         keyExtractor={(item) => item.id}
         renderItem={({ item, index }) => (
-          <RecordingItem
-            item={item}
-            index={index}
-            onDelete={handleDelete}
-          />
-        )}
+  <View style={{ marginBottom: 20 }}>
+    <RecordingItem
+      item={item}
+      index={index}
+      onDelete={handleDelete}
+    />
+    <TouchableOpacity
+      style={{
+        marginTop: 8,
+        padding: 10,
+        borderRadius: 8,
+        backgroundColor: theme === "dark" ? "#444" : "#ddd",
+        alignSelf: "flex-start",
+      }}
+      onPress={() => exportToDownloads(item.uri)}
+    >
+      <Text style={{ color: theme === "dark" ? "#fff" : "#000" }}>
+        Export to Downloads
+      </Text>
+    </TouchableOpacity>
+  </View>
+)}
+
         ListEmptyComponent={
           <Text style={{ color: theme === "dark" ? "#aaa" : "#444" }}>
             {t("noRecordings")}
